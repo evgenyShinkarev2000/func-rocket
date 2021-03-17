@@ -1,0 +1,186 @@
+using System;
+using System.Diagnostics;
+using System.Drawing;
+
+namespace func_rocket
+{
+	public class ControlTask
+	{
+		// для теста, недописано
+		// public static Turn ControlRocket(Rocket rocket, Vector target)
+		// {
+		// 	var wantedSpeedAngle = (target - rocket.Location).Angle;
+		// 	var currentSpeedAngle = rocket.Velocity.Angle;
+		// 	var maxSpeedAngleDelta = Math.PI * 0.6;
+		// 	var epsilon = 1e-2;
+		//
+		// 	var wantedRocketDirection = wantedSpeedAngle - (currentSpeedAngle - wantedSpeedAngle) % maxSpeedAngleDelta;
+		//
+		// 	if (wantedSpeedAngle > currentSpeedAngle)
+		// 	{
+		// 		if (Math.Abs( rocket.Direction - wantedRocketDirection) < epsilon)
+		// 			return Turn.None;
+		// 		
+		// 		if (rocket.Direction < wantedRocketDirection)
+		// 			return Turn.Right;
+		//
+		// 		return Turn.Left;
+		// 	}
+		// 	
+		// 	if (wantedSpeedAngle < currentSpeedAngle)
+		// 	{
+		// 		if (Math.Abs( rocket.Direction - wantedRocketDirection) < epsilon)
+		// 			return Turn.None;
+		// 		
+		// 		if (rocket.Direction < wantedRocketDirection)
+		// 			return Turn.Right;
+		//
+		// 		return Turn.Left;
+		// 	}
+		// 	
+		//
+		// 	return Turn.None;
+		// }
+
+		// public static Turn ControlRocket(Rocket rocket, Vector target)
+		// {
+		// 	var period = 2 * Math.PI;
+		// 	var angleToTarget = ((target - rocket.Location).Angle + period) % period;
+		// 	var currentSpeedAngle = (rocket.Velocity.Angle + period) % period;
+		// 	var currentNoseAngle = (rocket.Direction + period) % period;
+		// 	var deltaSideToTargetCurrentSpeed = currentSpeedAngle - angleToTarget;
+		//
+		// 	deltaSideToTargetCurrentSpeed = deltaSideToTargetCurrentSpeed % (Math.PI / 2);
+		//
+		// 	var WantedNoseDirection = angleToTarget - deltaSideToTargetCurrentSpeed;
+		//
+		// 	if (WantedNoseDirection > currentNoseAngle)
+		// 		return Turn.Right;
+		//
+		// 	return Turn.Left;
+		// }
+
+
+		// public static Turn ControlRocket(Rocket rocket, Vector target)
+		// {
+		// 	var vectorToTarget = (target - rocket.Location).Angle;
+		// 	var currentSpeedDirection = rocket.Velocity.Angle;
+		// 	var delta = vectorToTarget - currentSpeedDirection;
+		//
+		// 	var deltaAbs = Math.Abs(delta);
+		// 	if (deltaAbs > Math.PI)
+		// 		if (delta < 0)
+		// 			delta = Math.PI * 2 - deltaAbs;
+		// 		else
+		// 			delta = -Math.PI * 2 + deltaAbs;
+		//
+		// 	var noseDirectionForSpeedCorrection = currentSpeedDirection + 2 * delta;
+		//
+		// 	var noseDirectionForSpeedCorrectionAbs = Math.Abs(noseDirectionForSpeedCorrection);
+		// 	
+		// 	if (noseDirectionForSpeedCorrectionAbs > Math.PI)
+		// 		if (noseDirectionForSpeedCorrection > 0)
+		// 			noseDirectionForSpeedCorrection = -Math.PI * 2 + noseDirectionForSpeedCorrectionAbs;
+		// 		else
+		// 			noseDirectionForSpeedCorrection = Math.PI * 2 - noseDirectionForSpeedCorrectionAbs;
+		// 	
+		// 	var currentNoseDirection = rocket.Direction;
+		//
+		// 	// if (Math.Abs(noseDirectionForSpeedCorrection - currentNoseDirection) < 1e-3)
+		// 	// 	return Turn.None;
+		// 	
+		// 	if (Math.Abs(noseDirectionForSpeedCorrection) > Math.PI)
+		// 		throw new Exception("noseDirectionForSpeedCorrection > Pi");
+		//
+		// 	if (noseDirectionForSpeedCorrection < currentNoseDirection)
+		// 		return Turn.Left;
+		//
+		// 	return Turn.Right;
+		// }
+
+		public static Turn ControlRocket(Rocket rocket, Vector target)
+		{
+			var rocketSpeed = rocket.Velocity;
+			var directToTarget = target - rocket.Location;
+			var projectionRocketSpeedOnDirectToTarget = ScalarMultiplication(rocketSpeed, directToTarget)
+				/ (directToTarget.Length * directToTarget.Length) * directToTarget;
+			var reflectionRocketSpeed = 2 * projectionRocketSpeedOnDirectToTarget - rocketSpeed;
+			
+
+			if (ScalarMultiplication(reflectionRocketSpeed, directToTarget) < 0)
+				reflectionRocketSpeed = -1 * rocketSpeed;
+
+			var noseDirection = new Vector(Math.Sin(-rocket.Direction + Math.PI / 2),
+				Math.Cos(-rocket.Direction + Math.PI / 2));
+
+			var oXRight = directToTarget;
+			var oXLeft = -1 * directToTarget;
+			var oYUp = directToTarget.Rotate(-Math.PI / 2);
+			var oYDown = directToTarget.Rotate(Math.PI / 2);
+			
+			var IsNoseDown = FindAngle(noseDirection, oYUp) > FindAngle(noseDirection, oYDown);
+			var IsReflectionDown = FindAngle(reflectionRocketSpeed, oYUp)
+			                       > FindAngle(reflectionRocketSpeed, oYDown);
+			var IsNoseRight = FindAngle(noseDirection, oXRight) < FindAngle(noseDirection, oXLeft);
+			var angleTargetNose = FindAngle(directToTarget, noseDirection);
+			var angleTargetReflection = FindAngle(directToTarget, reflectionRocketSpeed);
+
+			if (IsNoseRight)
+			{
+				if (IsNoseDown)
+				{
+					if (IsReflectionDown)
+						return angleTargetNose < angleTargetReflection ? Turn.Right : Turn.Left;
+					return Turn.Left;
+				}
+				if (IsReflectionDown)
+					return Turn.Right;
+				return angleTargetNose < angleTargetReflection ? Turn.Left : Turn.Right;
+			}
+
+			if (IsNoseDown)
+			{
+				if (IsReflectionDown)
+					return Turn.Left;
+				return angleTargetReflection + angleTargetNose < Math.PI ? Turn.Left : Turn.Right;
+				
+			}
+
+			if (IsReflectionDown)
+				return angleTargetReflection + angleTargetNose < Math.PI ? Turn.Right : Turn.Left;
+			return Turn.Right;
+
+
+			LogContainer.rocketSpeed = rocketSpeed;
+			LogContainer.directToTarget = directToTarget;
+			LogContainer.reflectionRocketSpeedFromDirectToTarget = reflectionRocketSpeed;
+			LogContainer.rocketPosition = rocket.Location;
+			LogContainer.noseDirection = noseDirection * 20;
+		}
+
+		private static double ScalarMultiplication(Vector v1, Vector v2)
+			=> v1.X * v2.X + v1.Y * v2.Y;
+
+		private static double FindAngle(Vector v1, Vector v2)
+			=> Math.Acos(ScalarMultiplication(v1, v2) / v1.Length / v2.Length);
+	}
+	
+	public static class LogContainer
+	{
+		public static Vector reflectionRocketSpeedFromDirectToTarget = Vector.Zero;
+		public static Vector directToTarget = Vector.Zero;
+		public static Vector rocketSpeed = Vector.Zero;
+		public static Vector rocketPosition = Vector.Zero;
+		public static Vector noseDirection = Vector.Zero;
+
+		public static PointF RocketPositionPointF => GetPoint(rocketPosition);
+
+		public static PointF GetPoint(Vector vector)
+		{
+			if (vector == null)
+				return new PointF(0, 0);
+			
+			return new PointF((float)vector.X, (float)vector.Y);
+		}
+	}
+}
