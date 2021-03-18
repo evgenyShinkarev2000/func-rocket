@@ -1,13 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Windows.Forms;
 
 namespace func_rocket
 {
     public class LevelsTask
     {
-        static readonly Physics standardPhysics = new Physics();
-
         public static IEnumerable<Level> CreateLevels()
         {
             yield return MakeLevel("Zero");
@@ -46,17 +45,17 @@ namespace func_rocket
         
         private static Vector MakeDefaultTarget()
             => new Vector(600, 200);
+        
+        private static Gravity MakeZeroGravity()
+            => (size, location) => Vector.Zero;
 
         private static Level MakeLevel(string name, Rocket rocket = null, Vector target = null,
             Gravity gravity = null, Physics physics = null)
-        {
-            if (name == null) throw new ArgumentException();
-            if (rocket == null) rocket = MakeDefaultRocket();
-            if (target == null) target = MakeDefaultTarget();
-            if (gravity == null) gravity = (size, v) => Vector.Zero;
-            if (physics == null) physics = standardPhysics;
-            
-            return new Level(name, rocket, target, gravity, physics); 
-        }
+            => new Level(
+                name ?? throw new ArgumentException(),
+                rocket ?? MakeDefaultRocket(),
+                target ?? MakeDefaultTarget(),
+                gravity ?? MakeZeroGravity(),
+                physics ?? new Physics());
     }
 }
