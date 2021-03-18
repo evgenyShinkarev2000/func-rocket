@@ -23,6 +23,8 @@ namespace func_rocket
 		/// Суммирует все переданные силы, действующие на ракету, и возвращает суммарную силу.
 		/// </summary>
 		public static RocketForce Sum(params RocketForce[] forces)
-				 => r => forces.Select(x => x(r)).Aggregate((x, y) => x + y);
+				 => r => forces.Length == 0 
+					 ? Vector.Zero
+					 : forces.Select(x => x(r)).Aggregate((x, y) => x + y);
 	}
 }
