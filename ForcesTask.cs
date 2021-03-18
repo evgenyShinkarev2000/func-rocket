@@ -11,30 +11,18 @@ namespace func_rocket
 		/// Сила тяги направлена вдоль ракеты и равна по модулю forceValue.
 		/// </summary>
 		public static RocketForce GetThrustForce(double forceValue)
-		{
-			return r => new Vector(Math.Cos(r.Direction) * forceValue,
-				Math.Sin(r.Direction) * forceValue);
-		}
+			=> r => new Vector(forceValue, 0).Rotate(r.Direction);
 
-		/// <summary>
+			/// <summary>
 		/// Преобразует делегат силы гравитации, в делегат силы, действующей на ракету
 		/// </summary>
 		public static RocketForce ConvertGravityToForce(Gravity gravity, Size spaceSize)
-		{
-			 return r => gravity(spaceSize, r.Location);
-		}
+			=> r => gravity(spaceSize, r.Location);
 
-		/// <summary>
+			 /// <summary>
 		/// Суммирует все переданные силы, действующие на ракету, и возвращает суммарную силу.
 		/// </summary>
 		public static RocketForce Sum(params RocketForce[] forces)
-		{
-			return r =>
-			{
-				var forcesVectors = forces.Select(f => f(r));
-				return new Vector(forcesVectors.Select(f => f.X).Sum(),
-					forcesVectors.Select(f => f.Y).Sum());
-			};
-		}
+				 => r => forces.Select(x => x(r)).Aggregate((x, y) => x + y);
 	}
 }
